@@ -1,30 +1,85 @@
 id: maaqis_env
 name: Multi-Agent Air Quality Intelligence System
+version: "1.0.0"
 description: >
-  A real-world environment where an agent predicts AQI,
-  classifies pollution sources, and recommends actions.
+  MAAQIS is a real-world multi-agent environment where an AI agent
+  monitors urban air quality by predicting AQI values, classifying
+  pollution sources, and recommending public health policy actions.
+  Designed for evaluating decision-making agents on real environmental tasks.
+
+author: MAAQIS Team
+license: MIT
 
 entry_point: env:MAAQISEnv
 
 observation_space:
-  city: str
-  current_aqi: float
-  predicted_aqi: float
-  source: str
-  suggestion: str
+  city:
+    type: str
+    description: Name of the monitored city
+  current_aqi:
+    type: float
+    description: Current Air Quality Index (0–500 scale)
+  predicted_aqi:
+    type: float
+    nullable: true
+    description: Agent-predicted next step AQI value
+  source:
+    type: str
+    nullable: true
+    description: Classified pollution source — traffic, industry, or dust
+  suggestion:
+    type: str
+    nullable: true
+    description: Policy recommendation — alert, monitor, or safe
 
 action_space:
-  action_type: str
-  value: any
+  action_type:
+    type: str
+    description: One of — predict, classify, recommend
+  value:
+    type: any
+    description: >
+      predict    → integer AQI forecast,
+      classify   → traffic | industry | dust,
+      recommend  → alert | monitor | safe
 
 reward_range: [0.0, 1.0]
+reward_description: >
+  predict   → 1.0 - (abs_error / 500), clamped [0.0, 1.0]
+  classify  → 1.0 correct, 0.1 incorrect
+  recommend → 1.0 correct, graduated partial credit for near-misses
 
 max_steps: 5
 
 tasks:
   - name: aqi_prediction
-    description: Predict AQI value
+    description: >
+      Agent predicts the next AQI value. Reward is inversely
+      proportional to prediction error. Easy entry task.
+    difficulty: easy
+    grader: graders/grader1.py
+
   - name: source_classification
-    description: Identify pollution source
+    description: >
+      Agent identifies the dominant pollution source from AQI signal.
+      Requires pattern reasoning over AQI ranges.
+    difficulty: medium
+    grader: graders/grader2.py
+
   - name: policy_recommendation
-    description: Suggest action based on AQI
+    description: >
+      Agent recommends the correct public health action based on
+      AQI level, trend, and source. Requires integrating all signals.
+    difficulty: hard
+    grader: graders/grader3.py
+
+env_vars:
+  - name: API_BASE_URL
+    description: OpenAI-compatible API endpoint
+    default: "https://router.huggingface.co/v1"
+  - name: MODEL_NAME
+    description: Model identifier for inference
+    default: "Qwen/Qwen2.5-72B-Instruct"
+  - name: HF_TOKEN
+    description: HuggingFace API token
+    required: true
