@@ -1,0 +1,30 @@
+id: maaqis_env
+name: Multi-Agent Air Quality Intelligence System
+description: >
+  A real-world environment where an agent predicts AQI,
+  classifies pollution sources, and recommends actions.
+
+entry_point: env:MAAQISEnv
+
+observation_space:
+  city: str
+  current_aqi: float
+  predicted_aqi: float
+  source: str
+  suggestion: str
+
+action_space:
+  action_type: str
+  value: any
+
+reward_range: [0.0, 1.0]
+
+max_steps: 5
+
+tasks:
+  - name: aqi_prediction
+    description: Predict AQI value
+  - name: source_classification
+    description: Identify pollution source
+  - name: policy_recommendation
+    description: Suggest action based on AQI
