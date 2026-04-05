@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional, Any
-from env import MAAQISEnv, Action, Observation
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from env import MAAQISEnv, Action
 
 app = FastAPI(
     title="MAAQIS - Multi-Agent Air Quality Intelligence System",
@@ -9,23 +14,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# -----------------------------
-# 🔹 Global Environment Instance
-# -----------------------------
 env = MAAQISEnv()
 
 
-# -----------------------------
-# 🔹 Request Models
-# -----------------------------
 class ActionRequest(BaseModel):
     action_type: str
     value: Optional[Any] = None
 
 
-# -----------------------------
-# 🔹 Routes
-# -----------------------------
 @app.get("/")
 def root():
     return {
@@ -66,9 +62,15 @@ def state():
     return env.state()
 
 
-# -----------------------------
-# 🔹 Health Check
-# -----------------------------
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+def main():
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7860)
+
+
+if __name__ == "__main__":
+    main()
