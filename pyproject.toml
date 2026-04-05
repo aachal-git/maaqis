@@ -9,10 +9,11 @@ dependencies = [
     "python-dotenv",
     "fastapi",
     "uvicorn",
+    "openenv-core>=0.2.0",
 ]
 
-[project.optional-dependencies]
-dev = []
+[project.scripts]
+server = "app:app"
 
 [build-system]
 requires = ["setuptools"]
