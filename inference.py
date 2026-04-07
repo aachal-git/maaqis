@@ -173,16 +173,31 @@ def main():
             })
             policy = policy_out["action"]
 
+            model_action = get_action_from_model(client, obs)
+
             # -----------------------------
             # 🔀 STEP-BASED ACTION SELECTION
             # -----------------------------
             if step == 1:
-                action_obj = Action(action_type="predict", value=float(predicted_aqi))
-            elif step == 2:
-                action_obj = Action(action_type="classify", value=severity["source"])
-            else:
-                action_obj = Action(action_type="recommend", value=policy)
+                # use LLM prediction if valid, else agent
+                if model_action.action_type == "predict":
+                    action_obj = model_action
+                else:
+                    action_obj = Action(action_type="predict", value=float(predicted_aqi))
 
+            elif step == 2:
+                # use LLM classification if valid, else agent
+                if model_action.action_type == "classify":
+                    action_obj = model_action
+                else:
+                    action_obj = Action(action_type="classify", value=severity["source"])
+
+            else:
+                # use LLM recommendation if valid, else agent
+                if model_action.action_type == "recommend":
+                    action_obj = model_action
+                else:
+                    action_obj = Action(action_type="recommend", value=policy)
             # -----------------------------
             # ⚙️ ENV STEP
             # -----------------------------
