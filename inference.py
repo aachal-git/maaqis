@@ -1,4 +1,4 @@
-print("🔥 SCRIPT STARTED", flush=True)
+print("SCRIPT STARTED", flush=True)
 import os
 from dotenv import load_dotenv
 

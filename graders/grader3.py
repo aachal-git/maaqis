@@ -1,50 +1,34 @@
-#Policy Recommendation Grader
+# Public Health Recommendation Grader
+
 class Grader3:
     """
-    Hard Task: Policy Recommendation
-    Scores whether the agent recommends the correct public health action.
-    Requires integrating AQI level + trend + source signals.
-
-    Scoring:
-      Correct action           → 1.0
-      monitor instead of safe  → 0.4  (over-cautious)
-      monitor instead of alert → 0.2  (under-responded)
-      safe instead of monitor  → 0.3  (slightly under-cautious)
-      anything else wrong      → 0.1
+    Hard Task: Public Health Recommendation
+    Scores the appropriateness of health recommendations based on AQI level.
+    Uses continuous scoring — never exactly 0 or 1.
     """
 
+    # action -> aqi_range -> score
+    # Correct answer gets 0.95, close gets partial, wrong gets 0.1
+    SCORING_TABLE = {
+        # AQI > 300 → correct is "alert"
+        "alert":   {"alert": 0.95, "monitor": 0.35, "safe": 0.05},
+        # AQI 200-300 → correct is "monitor"
+        "monitor": {"monitor": 0.95, "alert": 0.45, "safe": 0.2},
+        # AQI < 200 → correct is "safe"
+        "safe":    {"safe": 0.95, "monitor": 0.5, "alert": 0.1},
+    }
+
     def __init__(self):
-        self.name = "policy_recommendation"
+        self.name = "health_recommendation"
         self.difficulty = "hard"
 
-    def _correct_action(self, aqi: float, trend: str) -> str:
+    def _get_correct_action(self, aqi: float) -> str:
         if aqi > 300:
             return "alert"
-        elif aqi > 200:
-            # If worsening trend, escalate to alert
-            if trend == "increasing":
-                return "alert"
+        elif aqi >= 200:
             return "monitor"
         else:
-            # If improving, confirm safe
-            if trend == "increasing":
-                return "monitor"
             return "safe"
-
-    def _score_recommendation(self, predicted: str, correct: str) -> float:
-        if predicted == correct:
-            return 1.0
-
-        if predicted == "monitor" and correct == "safe":
-            return 0.4
-        elif predicted == "monitor" and correct == "alert":
-            return 0.2
-        elif predicted == "safe" and correct == "monitor":
-            return 0.3
-        elif predicted == "alert" and correct == "monitor":
-            return 0.5  # erring on side of caution is less wrong
-        else:
-            return 0.1
 
     def grade(self, episode: dict) -> float:
         steps = episode.get("steps", [])
@@ -53,17 +37,19 @@ class Grader3:
 
         for step in steps:
             action = step.get("action", {})
-            aqi    = step.get("current_aqi", 0)
-            trend  = step.get("trend", "stable")
+            aqi    = step.get("current_aqi", None)
 
-            if action.get("action_type") == "recommend":
-                predicted = str(action.get("value", "")).strip().lower()
-                correct   = self._correct_action(aqi, trend)
-                score     = self._score_recommendation(predicted, correct)
-                recommendation_scores.append(round(score, 2))
+            if action.get("action_type") == "recommend" and aqi is not None:
+                predicted      = str(action.get("value", "")).strip().lower()
+                correct_action = self._get_correct_action(float(aqi))
+
+                row   = self.SCORING_TABLE.get(correct_action, {})
+                score = row.get(predicted, 0.05)  # unknown action → 0.05
+
+                recommendation_scores.append(round(score, 3))
 
         if not recommendation_scores:
-            return 0.0
+            return 0.1
 
         return round(sum(recommendation_scores) / len(recommendation_scores), 3)
 
@@ -76,15 +62,14 @@ if __name__ == "__main__":
 
     episode = {
         "steps": [
-            {"action": {"action_type": "recommend", "value": "alert"},   "current_aqi": 350, "trend": "increasing"},
-            {"action": {"action_type": "recommend", "value": "monitor"}, "current_aqi": 250, "trend": "stable"},
-            {"action": {"action_type": "recommend", "value": "safe"},    "current_aqi": 120, "trend": "decreasing"},
-            {"action": {"action_type": "recommend", "value": "monitor"}, "current_aqi": 120, "trend": "increasing"},
-            {"action": {"action_type": "recommend", "value": "alert"},   "current_aqi": 250, "trend": "increasing"},
+            {"action": {"action_type": "recommend", "value": "alert"},   "current_aqi": 350},
+            {"action": {"action_type": "recommend", "value": "monitor"}, "current_aqi": 250},
+            {"action": {"action_type": "recommend", "value": "safe"},    "current_aqi": 100},
+            {"action": {"action_type": "predict",   "value": 200},       "current_aqi": 350},
         ]
     }
 
     score = grader.grade(episode)
     print(f"Grader3 score: {score}")
     assert 0.0 <= score <= 1.0, "Score out of range!"
-    print("✅ Grader3 passed")
+    print("Grader3 passed")

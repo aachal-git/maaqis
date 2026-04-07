@@ -1,5 +1,3 @@
-# agents/satellite.py
-
 class SatelliteAgent:
     def __init__(self):
         self.history = []
