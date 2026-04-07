@@ -27,24 +27,21 @@ def clamp(value: float) -> float:
 
 class MAAQISEnv:
 
-    def __init__(self):
+    def __init__(self, aqi_range=(150, 400)):
         self.state_data = {}
         self.step_count = 0
-        self.max_steps = 5
+        self.max_steps  = 3               
+        self.aqi_range  = aqi_range       
 
     def reset(self) -> Observation:
         self.state_data = {
             "city": "Delhi",
-            "current_aqi": random.randint(150, 400),
+            "current_aqi": random.randint(self.aqi_range[0], self.aqi_range[1]),  # ← use range
             "true_source": random.choice(["traffic", "industry", "dust"]),
-            "true_prediction": random.randint(150, 400),
+            "true_prediction": random.randint(self.aqi_range[0], self.aqi_range[1]),
         }
         self.step_count = 0
-
-        return Observation(
-            city=self.state_data["city"],
-            current_aqi=self.state_data["current_aqi"]
-        )
+        return Observation(city=self.state_data["city"], current_aqi=self.state_data["current_aqi"])
 
     def step(self, action: Action) -> Dict[str, Any]:
         self.step_count += 1
