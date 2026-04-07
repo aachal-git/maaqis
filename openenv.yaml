@@ -52,32 +52,26 @@ reward_description: >
 max_steps: 5
 
 tasks:
-  - id: aqi_prediction
-    name: aqi_prediction
+  - name: aqi_prediction
     description: >
       Agent predicts the next AQI value. Reward is inversely
       proportional to prediction error. Easy entry task.
     difficulty: easy
     grader: graders/grader1.py
-    endpoint: /grade/1
 
-  - id: source_classification
-    name: source_classification
+  - name: source_classification
     description: >
       Agent identifies the dominant pollution source from AQI signal.
       Requires pattern reasoning over AQI ranges.
     difficulty: medium
     grader: graders/grader2.py
-    endpoint: /grade/2
 
-  - id: policy_recommendation
-    name: policy_recommendation
+  - name: policy_recommendation
     description: >
       Agent recommends the correct public health action based on
       AQI level, trend, and source. Requires integrating all signals.
     difficulty: hard
     grader: graders/grader3.py
-    endpoint: /grade/3
 
 env_vars:
   - name: API_BASE_URL
