@@ -11,11 +11,11 @@ class Grader3:
     # Correct answer gets 0.95, close gets partial, wrong gets 0.1
     SCORING_TABLE = {
         # AQI > 300 → correct is "alert"
-        "alert":   {"alert": 0.95, "monitor": 0.35, "safe": 0.05},
+        "alert":   {"alert": 0.95, "monitor": 0.35, "safe": 0.01},
         # AQI 200-300 → correct is "monitor"
-        "monitor": {"monitor": 0.95, "alert": 0.45, "safe": 0.2},
+        "monitor": {"monitor": 0.95, "alert": 0.45, "safe": 0.01},
         # AQI < 200 → correct is "safe"
-        "safe":    {"safe": 0.95, "monitor": 0.5, "alert": 0.1},
+        "safe":    {"safe": 0.95, "monitor": 0.5, "alert": 0.01},
     }
 
     def __init__(self):
@@ -44,12 +44,12 @@ class Grader3:
                 correct_action = self._get_correct_action(float(aqi))
 
                 row   = self.SCORING_TABLE.get(correct_action, {})
-                score = row.get(predicted, 0.05)  # unknown action → 0.05
+                score = row.get(predicted, 0.01)  # unknown action → 0.01
 
                 recommendation_scores.append(round(score, 3))
 
         if not recommendation_scores:
-            return 0.1
+            return 0.01
 
         return round(sum(recommendation_scores) / len(recommendation_scores), 3)
 
@@ -71,5 +71,5 @@ if __name__ == "__main__":
 
     score = grader.grade(episode)
     print(f"Grader3 score: {score}")
-    assert 0.0 <= score <= 1.0, "Score out of range!"
+    assert 0.01 <= score <= 0.99, "Score out of range!"
     print("Grader3 passed")

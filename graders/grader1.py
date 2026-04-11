@@ -27,15 +27,15 @@ class Grader1:
                     error = abs(predicted - float(true_val))
 
                     # Continuous score: never exactly 0 or 1
-                    raw = 1.0 - (error / 500.0)
+                    raw = 0.98 - (error / 500.0)
                     # Clamp to (0.01, 0.99) so it's never binary
                     score = max(0.01, min(0.99, raw))
                     prediction_scores.append(round(score, 3))
                 except (ValueError, TypeError):
-                    prediction_scores.append(0.1)  # partial credit, not 0
+                    prediction_scores.append(0.01)  # partial credit, not 0
 
         if not prediction_scores:
-            return 0.1  # never return exactly 0
+            return 0.01  # never return exactly 0
 
         return round(sum(prediction_scores) / len(prediction_scores), 3)
 
@@ -56,5 +56,5 @@ if __name__ == "__main__":
 
     score = grader.grade(episode)
     print(f"Grader1 score: {score}")
-    assert 0.0 <= score <= 1.0, "Score out of range!"
+    assert 0.01 <= score <= 0.99, "Score out of range!"
     print("Grader1 passed")

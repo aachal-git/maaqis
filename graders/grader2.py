@@ -41,14 +41,14 @@ class Grader2:
                 elif (predicted, true_src) in self.PARTIAL_CREDIT:
                     score = self.PARTIAL_CREDIT[(predicted, true_src)]
                 elif predicted not in self.VALID_SOURCES:
-                    score = 0.05  # invalid answer, not exactly 0
+                    score = 0.01  # invalid answer, not exactly 0
                 else:
-                    score = 0.1   # wrong but valid answer
+                    score = 0.01   # wrong but valid answer
 
                 classification_scores.append(round(score, 3))
 
         if not classification_scores:
-            return 0.1
+            return 0.01
 
         return round(sum(classification_scores) / len(classification_scores), 3)
 
