@@ -22,7 +22,7 @@ class Reward(BaseModel):
 
 def clamp(value: float) -> float:
     """Strictly clamp reward to (0.01, 0.99) — never exactly 0 or 1."""
-    return round(max(0.01, min(0.99, value)), 3)
+    return round(max(0.01, min(0.99, float(value))), 3)
 
 
 class MAAQISEnv:
@@ -62,6 +62,7 @@ class MAAQISEnv:
             # Raw score: never reaches 1.0 (error never truly 0 in practice)
             # but clamp ensures strict (0.01, 0.99)
             raw = 1.0 - (error / 500.0)
+            raw = raw * 0.98 + 0.01  # compress range to never hit 0 or 1 exactly
             reward = clamp(raw)
 
             obs.predicted_aqi = predicted
@@ -83,6 +84,7 @@ class MAAQISEnv:
             }
             key = (true_source, str(action.value).strip().lower())
             raw = partial.get(key, 0.10)
+            raw = raw * 0.98 + 0.01  # compress range to never hit 0 or 1 exactly
             reward = clamp(raw)
 
             obs.source = action.value
@@ -105,6 +107,7 @@ class MAAQISEnv:
             }
             predicted_action = str(action.value).strip().lower()
             raw = scoring.get(correct, {}).get(predicted_action, 0.05)
+            raw = raw * 0.98 + 0.01  # compress range to never hit 0 or 1 exactly
             reward = clamp(raw)
 
             obs.suggestion = action.value

@@ -1,0 +1,10 @@
+[33m979db16[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaaqis-dev[m[33m, [m[1;31morigin/maaqis-dev[m[33m, [m[1;31mhf/main[m[33m)[m fix: all scores strictly between 0 and 1 (0.01 to 0.99)
+[33mf186375[m all systems working - final submission
+[33m538f7e6[m final README update
+[33m9a36d97[m fix: call LLM via proxy in every step
+[33md5d699e[m fix: rewrite graders/__init__.py as clean empty UTF-8
+[33m8500584[m fix: 3 tasks easy/medium/hard, 3 steps each, score clamped 0.10-0.99
+[33m8e479a0[m fix: task1,task2,task3
+[33md056a6b[m fix: continuous rewards, satellite dict access, grader syntax
+[33m3fefd80[m fix: add __init__.py to graders and agents
+[33mbc3ca69[m fix: runtimeError
