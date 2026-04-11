@@ -3,23 +3,22 @@ import os
 from dotenv import load_dotenv
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ENV_PATH = os.path.join(BASE_DIR, ".env")
-load_dotenv(dotenv_path=ENV_PATH)
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 from openai import OpenAI
 from env import MAAQISEnv, Action
-
 from agents.satellite import SatelliteAgent
 from agents.ground import GroundAgent
 from agents.prediction import PredictionAgent
 from agents.policy import PolicyAgent
 
+# ✅ Per hackathon rules: HF_TOKEN required, others have defaults
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME   = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-API_KEY      = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
+MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
+HF_TOKEN     = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 
-if not API_KEY:
-    raise ValueError("API_KEY or HF_TOKEN not found. Check your .env file.")
+if not HF_TOKEN:
+    raise ValueError("HF_TOKEN environment variable is required")
 
 MAX_STEPS = 3
 
@@ -31,15 +30,13 @@ TASKS = [
 
 
 # -----------------------------
-# 🔹 LOG FUNCTIONS
+# LOG FUNCTIONS
 # -----------------------------
 def log_start(task, env, model):
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
 def log_step(step, action, reward, done, error):
-    error_val = error if error else "null"
-    done_val  = str(done).lower()
-    print(f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}", flush=True)
+    print(f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()} error={error if error else 'null'}", flush=True)
 
 def log_end(success, steps, rewards):
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
@@ -47,11 +44,10 @@ def log_end(success, steps, rewards):
 
 
 # -----------------------------
-# 🤖 LLM CALL
+# LLM CALL
 # -----------------------------
 def get_action_from_model(client, observation):
-    prompt = f"""
-You are an AI agent in an air quality monitoring system (MAAQIS).
+    prompt = f"""You are an AI agent in an air quality monitoring system.
 Current AQI: {observation.current_aqi}
 
 Respond with exactly one line, no explanation:
@@ -59,15 +55,15 @@ predict:<integer>   OR   classify:<traffic/industry/dust>   OR   recommend:<aler
 
 Rules:
 - predict: forecast next AQI as integer
-- classify: identify pollution source
+- classify: identify pollution source (traffic/industry/dust)
 - recommend: AQI>300 → alert, AQI 200-300 → monitor, AQI<200 → safe
 """
     try:
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": "You are a decision-making agent."},
-                {"role": "user", "content": prompt},
+                {"role": "system", "content": "You are a decision-making agent. Respond with exactly one line."},
+                {"role": "user",   "content": prompt},
             ],
             temperature=0.3,
             max_tokens=50,
@@ -86,14 +82,13 @@ Rules:
 
 
 # -----------------------------
-# 🚀 RUN TASK
+# RUN ONE TASK
 # -----------------------------
 def run_task(client, task_cfg):
     task_name = task_cfg["name"]
     aqi_range = task_cfg["aqi_range"]
 
-    env = MAAQISEnv(aqi_range=aqi_range)
-
+    env              = MAAQISEnv(aqi_range=aqi_range)
     satellite_agent  = SatelliteAgent()
     ground_agent     = GroundAgent()
     prediction_agent = PredictionAgent()
@@ -101,7 +96,6 @@ def run_task(client, task_cfg):
 
     rewards = []
     steps   = 0
-    score   = 0.01
     success = False
 
     log_start(task=task_name, env="maaqis_env", model=MODEL_NAME)
@@ -110,41 +104,18 @@ def run_task(client, task_cfg):
         obs = env.reset()
 
         for step in range(1, MAX_STEPS + 1):
-
-            # -----------------------------
-            # 🤖 MULTI-AGENT PIPELINE
-            # -----------------------------
-            trend = satellite_agent.analyze({
-                "city": obs.city,
-                "current_aqi": obs.current_aqi
-            })
-            severity = ground_agent.analyze({
-                "city": obs.city,
-                "current_aqi": obs.current_aqi
-            })
-            pred_out = prediction_agent.analyze({
-                "city": obs.city,
-                "current_aqi": obs.current_aqi,
-                "trend": trend
-            })
+            trend = satellite_agent.analyze({"city": obs.city, "current_aqi": obs.current_aqi})
+            severity = ground_agent.analyze({"city": obs.city, "current_aqi": obs.current_aqi})
+            pred_out = prediction_agent.analyze({"city": obs.city, "current_aqi": obs.current_aqi, "trend": trend})
             predicted_aqi = pred_out["predicted_aqi"]
             policy_out = policy_agent.analyze({
-                "current_aqi":   obs.current_aqi,
-                "predicted_aqi": predicted_aqi,
-                "risk_level":    severity["risk_level"],
-                "source":        severity["source"],
-                "trend":         trend,
+                "current_aqi": obs.current_aqi, "predicted_aqi": predicted_aqi,
+                "risk_level": severity["risk_level"], "source": severity["source"], "trend": trend,
             })
             policy = policy_out["action"]
 
-            # -----------------------------
-            # 🤖 LLM CALL via proxy
-            # -----------------------------
             model_action = get_action_from_model(client, obs)
 
-            # -----------------------------
-            # 🔀 ACTION SELECTION
-            # -----------------------------
             if step == 1:
                 action_obj = model_action if model_action.action_type == "predict" else Action(action_type="predict", value=float(predicted_aqi))
             elif step == 2:
@@ -152,9 +123,6 @@ def run_task(client, task_cfg):
             else:
                 action_obj = model_action if model_action.action_type == "recommend" else Action(action_type="recommend", value=policy)
 
-            # -----------------------------
-            # ⚙️ ENV STEP
-            # -----------------------------
             result = env.step(action_obj)
             obs    = result["observation"]
             reward = result["reward"]
@@ -163,19 +131,17 @@ def run_task(client, task_cfg):
             rewards.append(reward)
             steps = step
 
-            action_str = f"{action_obj.action_type}:{action_obj.value}"
-            log_step(step=step, action=action_str, reward=reward, done=done, error=None)
+            log_step(step=step, action=f"{action_obj.action_type}:{action_obj.value}", reward=reward, done=done, error=None)
 
             if done:
                 break
 
-        score   = round(sum(rewards) / len(rewards), 3) if rewards else 0.0
-        score   = min(max(score, 0.01), 0.99)
+        score   = round(sum(rewards) / len(rewards), 3) if rewards else 0.05
+        score   = max(0.02, min(0.98, score))
         success = score >= 0.5
 
     except Exception as e:
         print(f"[DEBUG] Runtime error: {e}", flush=True)
-        score   = 0.01
         success = False
 
     finally:
@@ -183,13 +149,12 @@ def run_task(client, task_cfg):
 
 
 # -----------------------------
-# ▶ MAIN
+# MAIN
 # -----------------------------
 def main():
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
     for task_cfg in TASKS:
         run_task(client, task_cfg)
-
 
 if __name__ == "__main__":
     main()
