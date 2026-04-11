@@ -41,9 +41,9 @@ def log_step(step, action, reward, done, error):
     done_val  = str(done).lower()
     print(f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}", flush=True)
 
-def log_end(success, steps, score, rewards):
+def log_end(success, steps, rewards):
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
-    print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
+    print(f"[END] success={str(success).lower()} steps={steps} rewards={rewards_str}", flush=True)
 
 
 # -----------------------------
@@ -179,7 +179,7 @@ def run_task(client, task_cfg):
         success = False
 
     finally:
-        log_end(success=success, steps=steps, score=score, rewards=rewards)
+        log_end(success=success, steps=steps, rewards=rewards)
 
 
 # -----------------------------
